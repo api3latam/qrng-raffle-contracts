@@ -33,6 +33,9 @@
     "typescript": "^4.8.3"
   },
   "dependencies": {
+    "@api3/airnode-admin": "^0.8.0",
+    "@api3/airnode-protocol": "^0.8.0",
+    "@openzeppelin/contracts": "^4.7.3",
     "dotenv": "^16.0.2"
   }
 }
