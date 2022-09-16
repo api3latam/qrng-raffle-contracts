@@ -4,6 +4,7 @@ pragma solidity ^0.8.15;
 
 import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequesterV0.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -15,27 +16,33 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
 
     using Strings for uint256;
 
-    uint256[9958] public ids;           // Array to store the NFTs Id - This is different from the tokenId
+    bool private shinnyAvailable;       // Turns on and off the possibility to get a special token
+    uint256 private shinnyCount;        // Count for the number of special tokens given
+    uint256 private expectedShinny      // Ammount of expect special tokens to be minted
     uint256 private index;	            // Track the next TokenId to be minted
     string private _baseURIextended;    // The Extended baseUrl for ERC721
     address public airnode;             // The address of the QRNG airnode
     bytes32 public endpointIdUint256;   // The endpointId of the airnode to fetch a single random number
     address public sponsorWallet;       // The address of the sponsorWallet that will be making the fullfillment transaction
 
-    // Mapping a custom URI to a tokenId. In cases when not using root folder from baseURI.
-    mapping(uint256 => string) private _tokenURIs; 
+    // Mapping a custom URI to a tokenId. In cases when not using root folder from baseURI
+    mapping(uint256 => string) private _tokenURIs;
+    // Mapping standard and special URIs for Tokens to specific id
+    mapping(uint256 => string) private _baseTokenURIs;
     // Mapping that maps the requestId for a random number to the fullfillment status of that request
-    mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;  
-    //Mapping that maps the requestId to the address that made the request
+    mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
+    // Mapping that tracks the requestId to the address that made the request
     mapping(bytes32 => address) requestToSender;
 
     event SetBaseURI(string baseURIExtended);
+    event RequestedToken(address requesterAddress, bytes32 idOfRequest);
+    event GeneratedToken(address requesterAddress, uint256 generatedTokenId)
 
-    constructor(address _airnodeRrp)
+    constructor(address _airnodeRrp, uint256 totalShinnies)
         RrpRequesterV0(_airnodeRrp)
         ERC721("LAPI3", "LAPI3") 
     {
-        
+        shinnyCount = totalShinnies;
     }
     
     /** @notice Sets parameters used in requesting QRNG services.
@@ -66,7 +73,27 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         emit SetBaseURI(_baseURIextended);
     }
 
+    /**
+     * @notice Sets the URIs for specific type of token.
+     * @dev This is reusing specific URIs for specific types of token without
+     * duplicating the same metadata.
+     * @param baseIdentifier The id to identify this specific URI
+     * @param desiredURI The actual URI string.
+     */
+    function setTokenBaseURI(
+        uint256 baseIdentifier, 
+        string memory desiredURI    
+    ) internal onlyOwner {
+        _baseTokenURIs[baseIdentifier] = desiredURI;
+    }
 
+    /**
+     * @notice Sets the string URI for an individual tokenId.
+     * @dev This function shouldn't be called individually.
+     * It will be use from the `mint` function instead.
+     * @param tokenId The TokenId.
+     * @param _tokenURI The string with the tokenURI.
+     */
     function _setTokenURI(
         uint256 tokenId, 
         string memory _tokenURI
@@ -113,14 +140,20 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         return string(abi.encodePacked(base, tokenId.toString()));
    }
    
-
-    function _pickRandomUniqueId(uint256 random) private returns (uint256 id) {
-        uint256 len = ids.length - index++;
-        require(len > 0, "no ids left");
-        uint256 randomIndex = random % len;
-        id = ids[randomIndex] != 0 ? ids[randomIndex] : randomIndex;
-        ids[randomIndex] = uint256(ids[len - 1] == 0 ? len - 1 : ids[len - 1]);
-        ids[len - 1] = 0;
+    /**
+     * @notice Random generator. Makes use of the input from the QRNG Oracle.
+     * @dev You can set a target number that equalsl to a special token.
+     * Like getting a `0` out of this function.
+     * @param random The uint256 from the Quantum API.
+     */
+    function _pickRandomUniqueId(
+        uint256 random
+    ) private returns (uint256) {
+        uint256 prevNumber = uint256(
+            keccak256(abi.encodePacked(msg.sender, random))
+            );
+        uint256 randomNumber = prevNumber % 100;
+        return randomNumber;
     }
    
     /**
@@ -146,7 +179,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         requestToSender[requestId] = msg.sender;
         (bool success, ) = sponsorWallet.call{value: 0.01 ether}("");
         require(success, "Forward failed");
-        emit RequestQuantumon(msg.sender, requestId);
+        emit RequestedToken(msg.sender, requestId);
         return requestId;
     }
 
@@ -170,10 +203,20 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngUint256 = abi.decode(data, (uint256));
         uint256 id = _pickRandomUniqueId(qrngUint256);
-        uint256 tokenId = index - 1;
+        if (id == 0 && shinnyAvailable && shinnyCount < shinnyAvailable) {
+            uint256 tokenId = shinnyCount;
+            shinnyCount += 1;
+            shinnyAvailable = false;
+        } else {
+            uint256 tokenId = index + shinnyAvailable;
+        }
         _safeMint(requestToSender[requestId], tokenId);
-        _setTokenURI(tokenId, id.toString());
-        emit GenerateQuantumon(requestToSender[requestId], tokenId);
+        if (tokenId < shinnyAvailable) {
+            _setTokenURI(tokenId, _baseTokenURIs[0]);
+        } else {
+            _setTokenURI(tokenId, _baseTokenURIs[1]);
+        }
+        emit GeneratedToken(requestToSender[requestId], tokenId);
     }
     
     function withdraw() public payable onlyOwner {
