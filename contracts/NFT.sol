@@ -18,7 +18,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
 
     bool private shinnyAvailable;       // Turns on and off the possibility to get a special token
     uint256 private shinnyCount;        // Count for the number of special tokens given
-    uint256 private expectedShinny      // Ammount of expect special tokens to be minted
+    uint256 private expectedShinny;     // Ammount of expect special tokens to be minted
     uint256 private index;	            // Track the next TokenId to be minted
     string private _baseURIextended;    // The Extended baseUrl for ERC721
     address public airnode;             // The address of the QRNG airnode
@@ -35,12 +35,13 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     mapping(bytes32 => address) requestToSender;
 
     event SetBaseURI(string baseURIExtended);
+    event SetRequestParameters(address airnodeAddress, bytes32 targetEndpoint, address sponsorAddress);
     event RequestedToken(address requesterAddress, bytes32 idOfRequest);
-    event GeneratedToken(address requesterAddress, uint256 generatedTokenId)
+    event GeneratedToken(address requesterAddress, uint256 generatedTokenId);
 
     constructor(address _airnodeRrp, uint256 totalShinnies)
         RrpRequesterV0(_airnodeRrp)
-        ERC721("LAPI3", "LAPI3") 
+        ERC721("LAPI3", "LAPI3")
     {
         shinnyCount = totalShinnies;
     }
@@ -150,7 +151,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
      */
     function _pickRandomUniqueId(
         uint256 random
-    ) private returns (uint256) {
+    ) private view returns (uint256) {
         uint256 prevNumber = uint256(
             keccak256(abi.encodePacked(msg.sender, random))
             );
@@ -174,7 +175,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             address(this),
             sponsorWallet,
             address(this),
-            this.generateQuantumon.selector,
+            this.mint.selector,
             ""
         );
         expectingRequestWithIdToBeFulfilled[requestId] = true;
@@ -203,18 +204,19 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngUint256 = abi.decode(data, (uint256));
         uint256 id = _pickRandomUniqueId(qrngUint256);
+        uint256 tokenId;
         if (id == 0 && 
             shinnyAvailable && 
-            shinnyCount < shinnyAvailable
+            shinnyCount < expectedShinny
         ) {
-            uint256 tokenId = shinnyCount;
+            tokenId = shinnyCount;
             shinnyCount += 1;
             shinnyAvailable = false;
         } else {
-            uint256 tokenId = index + shinnyAvailable;
+            tokenId = index + expectedShinny;
         }
         _safeMint(requestToSender[requestId], tokenId);
-        if (tokenId < shinnyAvailable) {
+        if (tokenId < expectedShinny) {
             _setTokenURI(tokenId, _baseTokenURIs[0]);
         } else {
             _setTokenURI(tokenId, _baseTokenURIs[1]);
