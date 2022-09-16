@@ -68,7 +68,9 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
      * URI without affecting the already minted token.
      * @param baseURI The new URI string to be used.
      */
-    function setBaseURI(string memory baseURI) external onlyOwner {
+    function setBaseURI(
+        string memory baseURI
+    ) external onlyOwner {
         _baseURIextended = baseURI;
         emit SetBaseURI(_baseURIextended);
     }
@@ -160,12 +162,12 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
      * @notice Calls the Airnode for the QRNG Services.
      * @dev This request will be fulfilled by the contract's sponsor wallet,
      * which means spamming it may drain the sponsor wallet.
+     * Thus, we'll limit to only be called by the owner, so we can later
+     * transfer the Token.
      */
-    function requestToken() public payable returns (bytes32) {
-        require(
-            msg.value >= 5 ether,
-            "Need to send at least 5 ether to the sponsorWallet"
-        );
+    function requestToken(
+        address targetAddress
+    ) public onlyOwner returns (bytes32) {
         bytes32 requestId = airnodeRrp.makeFullRequest(
             airnode,
             endpointIdUint256,
@@ -176,10 +178,8 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             ""
         );
         expectingRequestWithIdToBeFulfilled[requestId] = true;
-        requestToSender[requestId] = msg.sender;
-        (bool success, ) = sponsorWallet.call{value: 0.01 ether}("");
-        require(success, "Forward failed");
-        emit RequestedToken(msg.sender, requestId);
+        requestToSender[requestId] = targetAddress;
+        emit RequestedToken(targetAddress, requestId);
         return requestId;
     }
 
@@ -203,7 +203,10 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngUint256 = abi.decode(data, (uint256));
         uint256 id = _pickRandomUniqueId(qrngUint256);
-        if (id == 0 && shinnyAvailable && shinnyCount < shinnyAvailable) {
+        if (id == 0 && 
+            shinnyAvailable && 
+            shinnyCount < shinnyAvailable
+        ) {
             uint256 tokenId = shinnyCount;
             shinnyCount += 1;
             shinnyAvailable = false;
@@ -217,11 +220,5 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             _setTokenURI(tokenId, _baseTokenURIs[1]);
         }
         emit GeneratedToken(requestToSender[requestId], tokenId);
-    }
-    
-    function withdraw() public payable onlyOwner {
-        (bool success, ) = msg.sender.call{value: address(this).balance}("");
-        require(success, "Forward failed");
-        emit Withdrew(msg.sender);
     }
 }
