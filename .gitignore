@@ -44,6 +44,11 @@ typings/
 # Optional npm cache directory
 .npm
 
+# dotenv environment variables file
+.env
+.env.test
+*.env
+
 # Hardhat
 cache/
 artifacts/
