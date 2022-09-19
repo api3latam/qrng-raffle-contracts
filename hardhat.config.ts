@@ -1,8 +1,10 @@
+import type { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import dotenv from "dotenv";
 
-import type { HardhatUserConfig } from "hardhat/config";
+import "./tasks";
 
 dotenv.config();
 
