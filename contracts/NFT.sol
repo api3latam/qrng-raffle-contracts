@@ -32,7 +32,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     // Mapping that maps the requestId for a random number to the fullfillment status of that request
     mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
     // Mapping that tracks the requestId to the address that made the request
-    mapping(bytes32 => address) requestToSender;
+    mapping(bytes32 => address) private requestToSender;
 
     event SetBaseURI(string baseURIExtended);
     event SetRequestParameters(address airnodeAddress, bytes32 targetEndpoint, address sponsorAddress);
