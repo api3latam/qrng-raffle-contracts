@@ -43,5 +43,5 @@ export function writeJsonFile(args: {data: any, path: string, mode?: string}) {
         2
     );
     fs.writeFileSync(appRoot + args.path, parsedData);
-    console.log(`Filed written to: ${appRoot}${args.path}`);
+    console.log(`File written to: ${appRoot}${args.path}`);
 };

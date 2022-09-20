@@ -86,7 +86,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     function setTokenBaseURI(
         uint256 baseIdentifier, 
         string memory desiredURI    
-    ) internal onlyOwner {
+    ) external onlyOwner {
         _baseTokenURIs[baseIdentifier] = desiredURI;
     }
 
@@ -217,9 +217,9 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         }
         _safeMint(requestToSender[requestId], tokenId);
         if (tokenId < expectedShinny) {
-            _setTokenURI(tokenId, _baseTokenURIs[0]);
+            _setTokenURI(tokenId, tokenId.toString());
         } else {
-            _setTokenURI(tokenId, _baseTokenURIs[1]);
+            _setTokenURI(tokenId, tokenId.toString());
         }
         emit GeneratedToken(requestToSender[requestId], tokenId);
     }
