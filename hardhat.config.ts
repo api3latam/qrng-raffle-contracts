@@ -17,12 +17,16 @@ const config: HardhatUserConfig = {
         mumbai: {
             url: `${process.env.MUMBAI_URL}`,
             chainId: 80001,
-            accounts: [process.env.WALLET_PK || ""],
-            gas: 550_000_000
+            accounts: [process.env.WALLET_PK || ""]
         },
         polygon: {
             url: `${process.env.POLYGON_URL}`,
             chainId: 137,
+            accounts: [process.env.WALLET_PK || ""]
+        },
+        goerli: {
+            url: `${process.env.GOERLI_URL}`,
+            chainId: 5,
             accounts: [process.env.WALLET_PK || ""]
         }
     },

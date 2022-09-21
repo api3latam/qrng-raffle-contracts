@@ -196,7 +196,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     function mint(
         bytes32 requestId, 
         bytes calldata data
-    ) public onlyAirnodeRrp {
+    ) external onlyAirnodeRrp {
         require(
             expectingRequestWithIdToBeFulfilled[requestId],
             "Request ID not known"

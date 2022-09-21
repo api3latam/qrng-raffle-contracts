@@ -17,7 +17,9 @@ export function getPrivateKey() {
     }
 };
 
-export const providerURL = process.env['MUMBAI_URL'] || "";
+export function providerURL(network: string) {
+    return process.env[`${network.toUpperCase()}_URL`] || "";
+}
 
 export function loadJsonFile(file: string) {
     const appRoot = require("app-root-path");

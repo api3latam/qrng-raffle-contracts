@@ -9,11 +9,11 @@ task("setup", "Config parameters for NFT contract")
         try {
             const baseURI = "https://api.coolcatsnft.com/cat/";
             const qrngData = loadJsonFile('qrng.json');
-            const contractAddress = loadJsonFile('addresses/nftMumbai.json')['nft'];
+            const contractAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
 
             const artifact = await hre.artifacts.readArtifact("NFT");
             const provider = new hre.ethers.providers.JsonRpcProvider(
-                providerURL
+                providerURL(hre.network.name)
             )
             const privateKey = getPrivateKey()
             const signer = new hre.ethers.Wallet(
@@ -30,7 +30,7 @@ task("setup", "Config parameters for NFT contract")
             const sponsorWalletAddress = await deriveSponsorWalletAddress(
                 qrngData['xpub'],
                 qrngData['airnode'],
-                signer.address
+                contract.address
             );
 
             console.log('Setting up Base URI\n');

@@ -8,15 +8,18 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
     .setAction(async(_, hre) => {
         try {
 
-            const amount = { value: 1, unit: 'MATIC' };
-            const provider = new hre.ethers.providers.JsonRpcProvider(providerURL);
+            const amount = { value: 0.1, unit: 'ETH' };
+            const provider = new hre.ethers.providers.JsonRpcProvider(
+                providerURL(hre.network.name)
+            );
             const signer = new hre.ethers.Wallet(getPrivateKey(), provider);
             const qrngData = loadJsonFile('qrng.json');
+            const contractAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
 
             const sponsorWalletAddress = await deriveSponsorWalletAddress(
                 qrngData['xpub'],
                 qrngData['airnode'],
-                signer.address
+                contractAddress
             );
 
             console.log(

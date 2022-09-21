@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers, artifacts, waffle } from "hardhat";
+import { ethers, artifacts } from "hardhat";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { deriveSponsorWalletAddress } from "@api3/airnode-admin";
 
@@ -10,11 +10,15 @@ import type { NFT } from "../typechain/contracts";
 
 describe("NFT", async () => {
     async function tokenSetup() {
+        const hre = require("hardhat");
         const nftArtifact = await artifacts.readArtifact("NFT");
-        const nftAddress = loadJsonFile('addresses/nftMumbai.json')['nft'];
+        const nftAddress = loadJsonFile(
+            `addresses/nft${hre.network.name}.json`
+        )['nft'];
         const deployer = new ethers.Wallet(
             getPrivateKey(),
-            new ethers.providers.JsonRpcProvider(providerURL)
+            new ethers.providers.JsonRpcProvider(
+                providerURL(hre.network.name))
             );
 
         const nftContract = new ethers.Contract(
@@ -26,12 +30,12 @@ describe("NFT", async () => {
     }
 
     it("Should show the contract properties", async () => {
-        const { nftContract, deployer } = await waffle.loadFixture(tokenSetup);
+        const { nftContract } = await tokenSetup();
         const qrngData = loadJsonFile('qrng.json');
         const sponsorWalletAddress = await deriveSponsorWalletAddress(
             qrngData['xpub'],
             qrngData['airnode'],
-            deployer.address
+            nftContract.address
         );
     
         expect(await nftContract.symbol()).to.equal("LAPI3");
@@ -43,7 +47,7 @@ describe("NFT", async () => {
     });
 
     it("Should mint the tokens", async () => {
-        const { nftContract, deployer } = await waffle.loadFixture(tokenSetup);
+        const { nftContract, deployer } = await tokenSetup();
 
         const prevBalance = await nftContract.balanceOf(deployer.address);
 
