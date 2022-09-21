@@ -17,7 +17,8 @@ const config: HardhatUserConfig = {
         mumbai: {
             url: `${process.env.MUMBAI_URL}`,
             chainId: 80001,
-            accounts: [process.env.WALLET_PK || ""]
+            accounts: [process.env.WALLET_PK || ""],
+            gas: 550_000_000
         },
         polygon: {
             url: `${process.env.POLYGON_URL}`,

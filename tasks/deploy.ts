@@ -1,6 +1,5 @@
 import { task } from "hardhat/config";
 import { AirnodeRrpAddresses } from '@api3/airnode-protocol';
-import { deriveSponsorWalletAddress } from '@api3/airnode-admin';
 import { getPrivateKey, 
     writeJsonFile,
     loadJsonFile,
@@ -11,11 +10,9 @@ task("deploy", "Deploys all the contracts")
     .setAction(async(_, hre) => {
         try {
 
-            const airnodeAddress = AirnodeRrpAddresses[hre.network.config.chainId as number];
+            const airnodeAddress = AirnodeRrpAddresses[80001];
             const totalSpecials = 10;
-            const baseURI = "https://api.coolcatsnft.com/cat/";
             const fileName = 'addresses/nftMumbai.json';
-            const qrngData = loadJsonFile('qrng.json');
 
             const artifact = await hre.artifacts.readArtifact("NFT");
             const provider = new hre.ethers.providers.JsonRpcProvider(
@@ -37,23 +34,8 @@ task("deploy", "Deploys all the contracts")
             ) as NFT;
 
             console.log(`Contract deployed with address: ${contract.address}\n`);
-            
-            const sponsorWalletAddress = await deriveSponsorWalletAddress(
-                qrngData['xpub'],
-                qrngData['airnode'],
-                signer.address
-            );
 
-            console.log('Setting up Base URI\n');
-            await contract.setBaseURI(baseURI);
-            console.log('Setting up Airnode Parameters\n');
-            await contract.setRequestParameters(
-                qrngData['airnode'],
-                qrngData['endpointIdUint256'],
-                sponsorWalletAddress
-            );
-
-            console.log('Done setting-up. Saving address to file...\n')
+            console.log('Saving address to file...\n')
             writeJsonFile({
                 path: `/${fileName}`,
                 data: { nft : contract.address }
