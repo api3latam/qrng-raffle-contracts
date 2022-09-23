@@ -3,41 +3,28 @@
 pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequesterV0.sol";
 
 /**
 * @dev This contract is based out from DecentRaffle which can be found here: 
 * https://github.com/camronh/DecentRaffle/blob/master/hardhat/contracts/Raffle.sol
 */
-contract Raffler is RrpRequesterV0 {
+
+contract Raffle is RrpRequesterV0, Ownable {
+
     using Counters for Counters.Counter;
-    Counters.Counter private _ids;
 
-    event RaffleCreated(uint256 indexed _raffleId);
-    event WinnersPicked(uint256 indexed _raffleId);
+    Counters.Counter private _ids;          // Individual Raffle identifier
+    address public airnode;                 // The address of the QRNG airnode
+    bytes32 public endpointIdUint256;       // The endpointId of the airnode to fetch a single random number
+    address public sponsorWallet;           // The address of the sponsorWallet that will be making the fullfillment transaction
 
-    mapping(uint256 => Raffle) public raffles;
-    mapping(address => uint256[]) public accountRaffles;
-    mapping(address => uint256[]) public accountEntries;
-
-    // To store pending Airnode requests
-    mapping(bytes32 => bool) public pendingRequestIds;
-    mapping(bytes32 => uint256) private requestIdToRaffleId;
-
-    // These variables can also be declared as `constant`/`immutable`.
-    // However, this would mean that they would not be updatable.
-    // Since it is impossible to ensure that a particular Airnode will be
-    // indefinitely available, you are recommended to always implement a way
-    // to update these parameters.
-    address public airnodeRrpAddress;
-    address public sponsor;
-    address public sponsorWallet;
-    address public ANUairnodeAddress =
-        0x9d3C147cA16DB954873A498e0af5852AB39139f2;
-    bytes32 public endpointId =
-        0x27cc2713e7f968e4e86ed274a051a5c8aaee9cca66946f23af6f29ecea9704c3;
-
-    struct Raffle {
+    /**
+     * @notice Basic metadata for a raffle
+     * @dev The time parameters should be used in UNIX time stamp
+     */
+    struct IndividualRaffle {
         uint256 raffleId;
         string title;
         uint256 price;
@@ -47,41 +34,50 @@ contract Raffler is RrpRequesterV0 {
         bool open;
         uint256 startTime;
         uint256 endTime;
-        uint256 balance;
-        address owner;
         bool airnodeSuccess;
     }
 
-    /// @param _airnodeRrpAddress Airnode RRP contract address (https://docs.api3.org/airnode/v0.6/reference/airnode-addresses.html)
-    /// @param _sponsorWallet Sponsor Wallet address (https://docs.api3.org/airnode/v0.6/concepts/sponsor.html#derive-a-sponsor-wallet)
-    constructor(address _airnodeRrpAddress, address _sponsorWallet)
-        RrpRequesterV0(_airnodeRrpAddress)
-    {
-        airnodeRrpAddress = _airnodeRrpAddress;
-        sponsorWallet = _sponsorWallet;
-        sponsor = msg.sender;
-    }
+    // Mapping of Raffle id with its struct
+    mapping(uint256 => IndividualRaffle) public raffles;
+    // Mapping of raffles id in which an address is registered at
+    mapping(address => uint256[]) public accountEntries;
+    // Mapping that maps the requestId for a random number to the fullfillment status of that request
+    mapping(bytes32 => bool) public pendingRequestIds;
+    // Mapping that tracks the raffle id which made the request
+    mapping(bytes32 => uint256) private requestIdToRaffleId;
 
-    /// @notice Create a new raffle
-    /// @param _price The price to enter the raffle
-    /// @param _winnerCount The number of winners to be selected
-    /// @param _title Title of the raffle
-    /// @param _startTime Time the raffle starts
-    /// @param _endTime Time the raffle ends
+    event RaffleCreated(uint256 indexed _raffleId);
+    event WinnersPicked(uint256 indexed _raffleId);
+
+    /** 
+     * @param _airnodeRrp Airnode address from the network where the contract is being deploy
+     */
+    constructor(address _airnodeRrp)
+        RrpRequesterV0(_airnodeRrp) { }
+
+    /**
+     * @notice Creates a new raffle
+     * @param _price The price to enter the raffle
+     * @param _winnerCount The number of winners to be selected
+     * @param _title Title of the raffle
+     * @param _endTime Time the raffle ends
+     */
     function create(
         uint256 _price,
         uint16 _winnerCount,
         string memory _title,
-        uint256 _startTime,
         uint256 _endTime
-    ) public {
-        require(_winnerCount > 0, "Winner count must be greater than 0");
+    ) public onlyOwner {
+        require(
+            _winnerCount > 0, 
+            "Winner count must be greater than 0"
+        );
         require(
             block.timestamp < _endTime + 60,
             "Raffle must last at least 1 minute"
         );
         _ids.increment();
-        Raffle memory raffle = Raffle(
+        IndividualRaffle memory raffle = Raffle(
             _ids.current(),
             _title,
             _price,
@@ -89,40 +85,41 @@ contract Raffler is RrpRequesterV0 {
             new address[](0),
             new address[](0),
             true,
-            _startTime,
+            block.timestamp,
             _endTime,
-            0,
-            msg.sender,
             false
         );
         raffles[raffle.raffleId] = raffle;
-        accountRaffles[msg.sender].push(raffle.raffleId);
         emit RaffleCreated(raffle.raffleId);
     }
 
-    /// @notice Enter a raffle
-    /// @dev To enter more than one entry, send the price * entryCount in
-    /// the transaction.
-    /// @param _raffleId The raffle id to enter
-    /// @param entryCount The number of entries to enter
-    function enter(uint256 _raffleId, uint256 entryCount) public payable {
-        Raffle storage raffle = raffles[_raffleId];
-        require(raffle.open, "Raffle is closed");
-        require(entryCount >= 1, "Entry count must be at least 1");
+    /**
+     * @notice Enter an specific raffle
+     * @dev Notice that the entryNumber we are expecting is the result of a
+     * QRNG NFT we minted earlier in another contract. In addition, for gasless
+     * transactions, we will be pushing the participants only, but you can overwritte
+     * the participantAddress with msg.sender at the integration part.
+     * @param _raffleId The raffle id to enter
+     * @param participantAddress The participant address
+     * @param entryNumber The number that the user will use during the raffle.
+     */
+    function enter(
+        uint256 _raffleId,
+        address participantAddress,
+        uint256 entryNumber
+    ) public {
+        IndividualRaffle storage raffle = raffles[_raffleId];
+        require(
+            raffle.open, 
+            "Raffle is closed or does not exists"
+        );
         require(
             block.timestamp >= raffle.startTime &&
                 block.timestamp <= raffle.endTime,
             "Raffle is closed"
         );
-        require(
-            msg.value == raffle.price * entryCount,
-            "Entry price does not match"
-        );
-        raffle.balance += msg.value;
-        for (uint256 i = 0; i < entryCount; i++) {
-            raffle.entries.push(msg.sender);
-        }
-        accountEntries[msg.sender].push(raffle.raffleId);
+        raffle.entries.push(participantAddress);
+        accountEntries[participantAddress].push(raffle.raffleId);
     }
 
     /// @notice Close a raffle
