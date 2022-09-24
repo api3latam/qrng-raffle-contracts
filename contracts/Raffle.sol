@@ -27,9 +27,7 @@ contract Raffle is RrpRequesterV0, Ownable {
     struct IndividualRaffle {
         uint256 raffleId;
         string title;
-        uint256 price;
-        uint256 winnerCount;
-        address[] winners;
+        address winner;
         address[] entries;
         bool open;
         uint256 startTime;
@@ -46,8 +44,8 @@ contract Raffle is RrpRequesterV0, Ownable {
     // Mapping that tracks the raffle id which made the request
     mapping(bytes32 => uint256) private requestIdToRaffleId;
 
-    event RaffleCreated(uint256 indexed _raffleId);
-    event WinnersPicked(uint256 indexed _raffleId);
+    event RaffleCreated(IndividualRaffle _raffleMetadata);
+    event WinnerPicked(uint256 indexed _raffleId, address[] raffleWinners);
 
     /** 
      * @param _airnodeRrp Airnode address from the network where the contract is being deploy
@@ -57,21 +55,11 @@ contract Raffle is RrpRequesterV0, Ownable {
 
     /**
      * @notice Creates a new raffle
-     * @param _price The price to enter the raffle
-     * @param _winnerCount The number of winners to be selected
-     * @param _title Title of the raffle
      * @param _endTime Time the raffle ends
      */
     function create(
-        uint256 _price,
-        uint16 _winnerCount,
-        string memory _title,
         uint256 _endTime
     ) public onlyOwner {
-        require(
-            _winnerCount > 0, 
-            "Winner count must be greater than 0"
-        );
         require(
             block.timestamp < _endTime + 60,
             "Raffle must last at least 1 minute"
@@ -79,10 +67,7 @@ contract Raffle is RrpRequesterV0, Ownable {
         _ids.increment();
         IndividualRaffle memory raffle = Raffle(
             _ids.current(),
-            _title,
-            _price,
-            _winnerCount,
-            new address[](0),
+            address(0),
             new address[](0),
             true,
             block.timestamp,
@@ -90,23 +75,20 @@ contract Raffle is RrpRequesterV0, Ownable {
             false
         );
         raffles[raffle.raffleId] = raffle;
-        emit RaffleCreated(raffle.raffleId);
+        emit RaffleCreated(raffle);
     }
 
     /**
      * @notice Enter an specific raffle
-     * @dev Notice that the entryNumber we are expecting is the result of a
-     * QRNG NFT we minted earlier in another contract. In addition, for gasless
-     * transactions, we will be pushing the participants only, but you can overwritte
-     * the participantAddress with msg.sender at the integration part.
+     * @dev For gasless transactions, we will be pushing the participants only, 
+     * but you can overwritte this behaviour using the participantAddress 
+     * with msg.sender when calling the contract.
      * @param _raffleId The raffle id to enter
      * @param participantAddress The participant address
-     * @param entryNumber The number that the user will use during the raffle.
      */
     function enter(
         uint256 _raffleId,
-        address participantAddress,
-        uint256 entryNumber
+        address participantAddress
     ) public {
         IndividualRaffle storage raffle = raffles[_raffleId];
         require(
@@ -122,71 +104,70 @@ contract Raffle is RrpRequesterV0, Ownable {
         accountEntries[participantAddress].push(raffle.raffleId);
     }
 
-    /// @notice Close a raffle
-    /// @dev Called by the raffle owner when the raffle is over.
-    /// This function will close the raffle to new entries and will
-    /// call Airnode for randomness.
-    /// @dev send at least .001 ether to fund the sponsor wallet
-    /// @param _raffleId The raffle id to close
-    function close(uint256 _raffleId) public payable {
-        Raffle storage raffle = raffles[_raffleId];
-        // require(
-        //     msg.sender == raffle.owner,
-        //     "Only raffle owner can pick winners"
-        // );
-        require(raffle.open, "Raffle is closed");
-        // require(block.timestamp >= raffle.endTime, "Raffle is still open");
+    /**
+     * @notice Close an especific open raffle
+     * @dev Called by the raffle owner when the raffle is over.
+     * This function will close the raffle to new entries and will
+     * call QRNG Airnode.
+     * @param _raffleId The raffle id to close
+     */
+    function close(
+        uint256 _raffleId
+    ) public onlyOwner returns (bytes32) {
+        IndividualRaffle storage raffle = raffles[_raffleId];
+        require(
+            raffle.open,
+            "Raffle is already closed or does not exists"
+        );
         if (raffle.entries.length == 0) {
             raffle.open = false;
             raffle.airnodeSuccess = true;
-            return;
+            return bytes32("Raffle canceled!");
         }
-        require(
-            raffle.entries.length >= raffle.winnerCount,
-            "Not enough entries"
-        );
-
-        // Top up the Sponsor Wallet
-        require(
-            msg.value >= .001 ether,
-            "Please send some funds to the sponsor wallet"
-        );
-        payable(sponsorWallet).transfer(msg.value);
-
         bytes32 requestId = airnodeRrp.makeFullRequest(
-            ANUairnodeAddress,
-            endpointId,
-            sponsor,
+            airnode,
+            endpointIdUint256,
+            address(this),
             sponsorWallet,
             address(this),
-            this.pickWinners.selector,
-            abi.encode(bytes32("1u"), bytes32("size"), raffle.winnerCount)
+            this.pickWinner.selector,
+            ""
         );
         pendingRequestIds[requestId] = true;
         requestIdToRaffleId[requestId] = _raffleId;
         raffle.open = false;
+        return requestId;
     }
 
-    /// @notice Randomness returned by Airnode is used to choose winners
-    /// @dev Only callable by Airnode.
-    function pickWinners(bytes32 requestId, bytes calldata data)
-        external
-        onlyAirnodeRrp
-    {
-        require(pendingRequestIds[requestId], "No such request made");
-        delete pendingRequestIds[requestId];
-        Raffle storage raffle = raffles[requestIdToRaffleId[requestId]];
-        require(!raffle.airnodeSuccess, "Winners already picked");
+    /**
+     * @notice Callback function for QRNG airnode and Close function.
+     * @dev Note the `onlyAirnodeRrp` modifier. You should only accept RRP
+     * fulfillments from this protocol contract. Also note that only
+     * fulfillments for the requests made by this contract are accepted, and
+     * a request cannot be responded to multiple times.
+     */
+    function pickWinner(
+        bytes32 requestId, 
+        bytes calldata data
+    ) external onlyAirnodeRrp {
+        require(
+            pendingRequestIds[requestId], 
+            "No such request made"
+        );
+        pendingRequestIds[requestId] = false;
+        IndividualRaffle storage raffle = raffles[requestIdToRaffleId[requestId]];
+        require(
+            !raffle.airnodeSuccess, 
+            "Winner already picked"
+        );
 
-        uint256[] memory randomNumbers = abi.decode(data, (uint256[])); // array of random numbers returned by Airnode
-        for (uint256 i = 0; i < randomNumbers.length; i++) {
-            uint256 winnerIndex = randomNumbers[i] % raffle.entries.length;
-            raffle.winners.push(raffle.entries[winnerIndex]);
-            removeAddress(winnerIndex, raffle.entries);
-        }
+        uint256 memory randomNumber = abi.decode(data, (uint256));
+
+        uint256 winnerIndex = randomNumber % raffle.entries.length;
+        raffle.winner = raffle.entries[winnerIndex];
+
         raffle.airnodeSuccess = true;
-        emit WinnersPicked(raffle.raffleId);
-        payable(raffle.owner).transfer(raffle.balance);
+        emit WinnerPicked(raffle.raffleId, raffle.winner);
     }
 
     /// @notice Get the raffle entries
@@ -245,9 +226,4 @@ contract Raffle is RrpRequesterV0, Ownable {
         return _raffles;
     }
 
-    function removeAddress(uint256 index, address[] storage array) private {
-        require(index < array.length);
-        array[index] = array[array.length - 1];
-        array.pop();
-    }
 }
