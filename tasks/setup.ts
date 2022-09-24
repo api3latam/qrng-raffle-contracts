@@ -9,40 +9,63 @@ task("setup", "Config parameters for NFT contract")
         try {
             const baseURI = "https://api.coolcatsnft.com/cat/";
             const qrngData = loadJsonFile('qrng.json');
-            const contractAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
 
-            const artifact = await hre.artifacts.readArtifact("NFT");
+            const raffleAddress = loadJsonFile(`addresses/raffle${hre.network.name}.json`)['raffle'];
+            const nftAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
+
+            const nftArtifact = await hre.artifacts.readArtifact("NFT");
+            const raffleArtifact = await hre.artifacts.readArtifact("Raffle");
+
             const provider = new hre.ethers.providers.JsonRpcProvider(
                 providerURL(hre.network.name)
-            )
-            const privateKey = getPrivateKey()
+            );
+            const privateKey = getPrivateKey();
             const signer = new hre.ethers.Wallet(
                 privateKey,
                 provider
-                );
+            );
 
-            const contract = new hre.ethers.Contract(
-                contractAddress,
-                artifact.abi,
+            const nftContract = new hre.ethers.Contract(
+                nftAddress,
+                nftArtifact.abi,
                 signer
-            )
+            );
+            const raffleContract = new hre.ethers.Contract(
+                raffleAddress,
+                raffleArtifact.abi,
+                signer
+            );
 
-            const sponsorWalletAddress = await deriveSponsorWalletAddress(
+            const nftSponsor = await deriveSponsorWalletAddress(
                 qrngData['xpub'],
                 qrngData['airnode'],
-                contract.address
+                nftContract.address
             );
-
+            const raffleSponsor = await deriveSponsorWalletAddress(
+                qrngData['xpub'],
+                qrngData['airnode'],
+                raffleContract.address
+            );
+            
+            console.log('Setting up NFT Contract');
             console.log('Setting up Base URI\n');
-            await contract.setBaseURI(baseURI);
+            await nftContract.setBaseURI(baseURI);
             console.log('Setting up Airnode Parameters\n');
-            await contract.setRequestParameters(
+            await nftContract.setRequestParameters(
                 qrngData['airnode'],
                 qrngData['endpointIdUint256'],
-                sponsorWalletAddress
+                nftSponsor
             );
 
+            console.log('Setting up Raffle');
+            await raffleContract.setRequestParameters(
+                qrngData['airnode'],
+                qrngData['endpointIdUint256'],
+                raffleSponsor
+            )
+
             console.log('Done Setting up!');
+
         } catch(err) {
             console.error(err);
         }

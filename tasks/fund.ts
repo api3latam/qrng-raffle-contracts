@@ -14,23 +14,40 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
             );
             const signer = new hre.ethers.Wallet(getPrivateKey(), provider);
             const qrngData = loadJsonFile('qrng.json');
-            const contractAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
 
-            const sponsorWalletAddress = await deriveSponsorWalletAddress(
+            const nftAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
+            const raffleAddress = loadJsonFile(`addresses/raffle${hre.network.name}.json`)['raffle'];
+
+            const nftSponsor = await deriveSponsorWalletAddress(
                 qrngData['xpub'],
                 qrngData['airnode'],
-                contractAddress
+                nftAddress
+            );
+            const raffleSponsor = await deriveSponsorWalletAddress(
+                qrngData['xpub'],
+                qrngData['airnode'],
+                raffleAddress
             );
 
             console.log(
-                `Funding sponsor wallet at ${sponsorWalletAddress} with: \
+                `Funding NFT sponsor wallet at ${nftSponsor} with: \
                     ${amount['value']} ${amount['unit']}\n`
               );
             await signer.sendTransaction({
-                to: sponsorWalletAddress,
+                to: nftSponsor,
                 value: hre.ethers.utils.parseEther(amount['value'].toString()),
               });
-            console.log('Sponsor wallet funded');
+
+            console.log(
+                `Funding Raffle sponsor wallet at ${raffleSponsor} with: \
+                    ${amount['value']} ${amount['unit']}\n`
+              );
+            await signer.sendTransaction({
+                to: raffleSponsor,
+                value: hre.ethers.utils.parseEther(amount['value'].toString()),
+              });
+
+            console.log('Sponsor wallets funded');
 
         } catch(err) {
             console.error(err);
