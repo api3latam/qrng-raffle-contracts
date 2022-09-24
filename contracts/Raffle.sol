@@ -45,12 +45,30 @@ contract Raffle is RrpRequesterV0, Ownable {
 
     event RaffleCreated(IndividualRaffle _raffleMetadata);
     event WinnerPicked(uint256 indexed _raffleId, address raffleWinner);
+    event SetRequestParameters(address airnodeAddress, bytes32 targetEndpoint, address sponsorAddress);
 
     /** 
      * @param _airnodeRrp Airnode address from the network where the contract is being deploy
      */
     constructor(address _airnodeRrp)
         RrpRequesterV0(_airnodeRrp) { }
+
+    /** @notice Sets parameters used in requesting QRNG services.
+     *  @dev This is a function modified from the original QRNG example.
+     *  @param _airnode Airnode address.
+     *  @param _endpointIdUint256 Endpoint ID used to request a `uint256`.
+     *  @param _sponsorWallet Sponsor wallet address.
+     */
+    function setRequestParameters(
+        address _airnode,
+        bytes32 _endpointIdUint256,
+        address _sponsorWallet
+    ) external onlyOwner {
+        airnode = _airnode;
+        endpointIdUint256 = _endpointIdUint256;
+        sponsorWallet = _sponsorWallet;
+        emit SetRequestParameters(airnode, endpointIdUint256, sponsorWallet);
+    }
 
     /**
      * @notice Creates a new raffle
