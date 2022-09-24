@@ -26,7 +26,6 @@ contract Raffle is RrpRequesterV0, Ownable {
      */
     struct IndividualRaffle {
         uint256 raffleId;
-        string title;
         address winner;
         address[] entries;
         bool open;
@@ -45,7 +44,7 @@ contract Raffle is RrpRequesterV0, Ownable {
     mapping(bytes32 => uint256) private requestIdToRaffleId;
 
     event RaffleCreated(IndividualRaffle _raffleMetadata);
-    event WinnerPicked(uint256 indexed _raffleId, address[] raffleWinners);
+    event WinnerPicked(uint256 indexed _raffleId, address raffleWinner);
 
     /** 
      * @param _airnodeRrp Airnode address from the network where the contract is being deploy
@@ -65,7 +64,7 @@ contract Raffle is RrpRequesterV0, Ownable {
             "Raffle must last at least 1 minute"
         );
         _ids.increment();
-        IndividualRaffle memory raffle = Raffle(
+        IndividualRaffle memory raffle = IndividualRaffle(
             _ids.current(),
             address(0),
             new address[](0),
@@ -161,7 +160,7 @@ contract Raffle is RrpRequesterV0, Ownable {
             "Winner already picked"
         );
 
-        uint256 memory randomNumber = abi.decode(data, (uint256));
+        uint256 randomNumber = abi.decode(data, (uint256));
 
         uint256 winnerIndex = randomNumber % raffle.entries.length;
         raffle.winner = raffle.entries[winnerIndex];
@@ -170,60 +169,33 @@ contract Raffle is RrpRequesterV0, Ownable {
         emit WinnerPicked(raffle.raffleId, raffle.winner);
     }
 
-    /// @notice Get the raffle entries
-    /// @param _raffleId The raffle id to get the entries of
-    function getEntries(uint256 _raffleId)
-        public
-        view
-        returns (address[] memory)
-    {
+    /**
+     * @notice Get an individual Raffle entries
+     * @param _raffleId The raffle id to get the entries from
+     */
+    function getEntries(
+        uint256 _raffleId
+    ) public view returns (address[] memory) {
         return raffles[_raffleId].entries;
     }
 
-    /// @notice Get the raffle winners
-    /// @param _raffleId The raffle id to get the winners of
-    function getWinners(uint256 _raffleId)
-        public
-        view
-        returns (address[] memory)
-    {
-        return raffles[_raffleId].winners;
+    /**
+     * @notice Get an individual Raffle winner
+     * @param _raffleId The raffle id to get the winner from
+     */
+    function getWinners(
+        uint256 _raffleId
+    ) public view returns (address) {
+        return raffles[_raffleId].winner;
     }
 
-    /// @notice Get the raffles the user has entered
-    /// @param _address Address of the user
-    function getEnteredRaffles(address _address)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    /**
+     * @notice Get the raffles the user has entered
+     * @param _address Target user address
+     */
+    function getEnteredRaffles(
+        address _address
+    ) public view returns (uint256[] memory) {
         return accountEntries[_address];
     }
-
-    function isWinner(uint256 _raffleId, address _address)
-        public
-        view
-        returns (bool)
-    {
-        for (uint256 i = 0; i < raffles[_raffleId].winners.length; i++) {
-            if (raffles[_raffleId].winners[i] == _address) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function getAccountRaffles(address _account)
-        public
-        view
-        returns (Raffle[] memory)
-    {
-        uint256[] memory _raffleIds = accountRaffles[_account];
-        Raffle[] memory _raffles = new Raffle[](_raffleIds.length);
-        for (uint256 i = 0; i < _raffleIds.length; i++) {
-            _raffles[i] = raffles[_raffleIds[i]];
-        }
-        return _raffles;
-    }
-
 }
