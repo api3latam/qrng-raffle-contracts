@@ -76,7 +76,7 @@ contract Raffle is RrpRequesterV0, Ownable {
      */
     function create(
         uint256 _endTime
-    ) public onlyOwner {
+    ) public onlyOwner returns (uint256) {
         require(
             block.timestamp < _endTime + 60,
             "Raffle must last at least 1 minute"
@@ -93,6 +93,7 @@ contract Raffle is RrpRequesterV0, Ownable {
         );
         raffles[raffle.raffleId] = raffle;
         emit RaffleCreated(raffle);
+        return raffle.raffleId;
     }
 
     /**
@@ -201,7 +202,7 @@ contract Raffle is RrpRequesterV0, Ownable {
      * @notice Get an individual Raffle winner
      * @param _raffleId The raffle id to get the winner from
      */
-    function getWinners(
+    function getWinner(
         uint256 _raffleId
     ) public view returns (address) {
         return raffles[_raffleId].winner;

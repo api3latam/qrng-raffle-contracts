@@ -6,6 +6,7 @@ import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequesterV0.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
 * @dev This contract is based out from Quantumon which can be found here: 
@@ -15,11 +16,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract NFT is ERC721, RrpRequesterV0, Ownable {
 
     using Strings for uint256;
+    using Counters for Counters.Counter;
 
     bool private shinnyAvailable;       // Turns on and off the possibility to get a special token
     uint256 private shinnyCount;        // Count for the number of special tokens given
     uint256 private expectedShinny;     // Ammount of expect special tokens to be minted
-    uint256 private index;	            // Track the next TokenId to be minted
+    Counters.Counter private index;	    // Track the next TokenId to be minted
     string private _baseURIextended;    // The Extended baseUrl for ERC721
     address public airnode;             // The address of the QRNG airnode
     bytes32 public endpointIdUint256;   // The endpointId of the airnode to fetch a single random number
@@ -43,7 +45,8 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         RrpRequesterV0(_airnodeRrp)
         ERC721("LAPI3", "LAPI3")
     {
-        shinnyCount = totalShinnies;
+        shinnyCount = 0;
+        expectedShinny = totalShinnies;
     }
     
     /** @notice Sets parameters used in requesting QRNG services.
@@ -155,7 +158,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         uint256 prevNumber = uint256(
             keccak256(abi.encodePacked(msg.sender, random))
             );
-        uint256 randomNumber = prevNumber % 100;
+        uint256 randomNumber = prevNumber % 255; // Probability of 2/255
         return randomNumber;
     }
    
@@ -203,18 +206,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         );
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngUint256 = abi.decode(data, (uint256));
-        uint256 id = _pickRandomUniqueId(qrngUint256);
-        uint256 tokenId;
-        if (id == 0 && 
-            shinnyAvailable && 
-            shinnyCount < expectedShinny
-        ) {
-            tokenId = shinnyCount;
-            shinnyCount += 1;
-            shinnyAvailable = false;
-        } else {
-            tokenId = index + expectedShinny;
-        }
+        uint256 tokenId = _generateId(qrngUint256);
         _safeMint(requestToSender[requestId], tokenId);
         if (tokenId < expectedShinny) {
             _setTokenURI(tokenId, tokenId.toString());
@@ -222,5 +214,30 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             _setTokenURI(tokenId, tokenId.toString());
         }
         emit GeneratedToken(requestToSender[requestId], tokenId);
+    }
+
+    /**
+     * @notice Internal function to generate the tokenId based on QRNG result.
+     * @dev This function is to be used exclusively inside the `mint` callback logic, 
+     * can be use either in batch minting or individually.
+     * @param randomUint The result uint from the airnode call.
+     */
+    function _generateId(
+        uint256 randomUint
+    )   internal returns (uint256) {
+        uint256 id = _pickRandomUniqueId(randomUint);
+        uint256 _tokenId;
+        if (id == 0 && 
+            shinnyAvailable && 
+            shinnyCount < expectedShinny
+        ) {
+            shinnyCount += 1;
+            _tokenId = shinnyCount;
+            shinnyAvailable = false;
+        } else {
+            index.increment();
+            _tokenId = index.current() + expectedShinny;
+        }
+        return _tokenId;
     }
 }
