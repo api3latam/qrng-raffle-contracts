@@ -19,19 +19,17 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     using Counters for Counters.Counter;
 
     bool private shinnyAvailable;           // Turns on and off the possibility to get a special token
-    uint256 private shinnyCount;            // Count for the number of special tokens given
+    uint256 public shinnyCount;             // Count for the number of special tokens given
     uint256 private expectedShinny;         // Ammount of expect special tokens to be minted
     Counters.Counter private index;	        // Track the next TokenId to be minted
     string private _baseURIextended;        // The Extended baseUrl for ERC721
     address public airnode;                 // The address of the QRNG airnode
     bytes32 public endpointIdUint256;       // The endpointId of the airnode to fetch a single random number
     bytes32 public endpointIdUint256Array;  // The endpointId of the airnode to fetch multiple random numbers at once 
-    address public sponsorWallet;           // The address of the sponsorWallet that will be making the fullfillment transaction
+    address private sponsorWallet;           // The address of the sponsorWallet that will be making the fullfillment transaction
 
     // Mapping a custom URI to a tokenId. In cases when not using root folder from baseURI
     mapping(uint256 => string) private _tokenURIs;
-    // Mapping standard and special URIs for Tokens to specific id
-    mapping(uint256 => string) private _baseTokenURIs;
     // Mapping that maps the requestId for a random number to the fullfillment status of that request
     mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
     // Mapping that tracks the requestId to the address that made the request
@@ -48,6 +46,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     event RequestedBatchToken(address[] requesterAddresses, bytes32 idOfRequest);
     event GeneratedToken(address requesterAddress, uint256 generatedTokenId);
     event GeneratedBatchToken(address[] requesterAddresses, uint256[] generatedTokenIds);
+    event GenerateShinny(address winnerAddress, uint256 generatedTokenId);
 
     constructor(address _airnodeRrp, uint256 totalShinnies)
         RrpRequesterV0(_airnodeRrp)
@@ -80,6 +79,18 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             sponsorWallet
         );
     }
+
+    /**
+     * @notice Function to switch the `shinnyAvailable` parameter
+     */
+    function shinnyAvailability() 
+        external onlyOwner {
+            if (shinnyAvailable) {
+                shinnyAvailable = false;
+            } else {
+                shinnyAvailable = true;
+            }
+    }
     
     /**
      * @notice Sets the string for BaseURI where metadata will be located at
@@ -92,20 +103,6 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     ) external onlyOwner {
         _baseURIextended = baseURI;
         emit SetBaseURI(_baseURIextended);
-    }
-
-    /**
-     * @notice Sets the URIs for specific type of token.
-     * @dev This is reusing specific URIs for specific types of token without
-     * duplicating the same metadata.
-     * @param baseIdentifier The id to identify this specific URI
-     * @param desiredURI The actual URI string.
-     */
-    function setTokenBaseURI(
-        uint256 baseIdentifier, 
-        string memory desiredURI    
-    ) external onlyOwner {
-        _baseTokenURIs[baseIdentifier] = desiredURI;
     }
 
     /**
@@ -168,13 +165,19 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
      * @param random The uint256 from the Quantum API.
      */
     function _pickRandomUniqueId(
-        uint256 random
-    ) private view returns (uint256) {
-        uint256 prevNumber = uint256(
-            keccak256(abi.encodePacked(msg.sender, random))
-            );
-        uint256 randomNumber = prevNumber % 255; // Probability of 2/255
-        return randomNumber;
+        uint256 random,
+        bool isShinny
+    ) internal view returns (uint256) {
+        uint256 randomNumber;
+        if (!isShinny) {
+            uint256 prevNumber = uint256(
+                keccak256(abi.encodePacked(msg.sender, random)) // Probability of 1/255 as per Wallet address times 0 - 255 from API 
+                );
+            randomNumber = prevNumber % 255; // Probability of ~ 2/255. 
+        } else if (isShinny) {
+            randomNumber = 0;
+        }
+        return randomNumber; // Final probability of 0.031% per mint
     }
    
     /**
@@ -245,7 +248,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         );
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngUint256 = abi.decode(data, (uint256));
-        uint256 tokenId = _generateId(qrngUint256);
+        uint256 tokenId = _generateId(qrngUint256, false);
         _safeMint(requestToSender[requestId][0], tokenId);
         _setTokenURI(tokenId, tokenId.toString());
         emit GeneratedToken(requestToSender[requestId][0], tokenId);
@@ -268,12 +271,26 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         uint256[] memory qrngUintArray = abi.decode(data, (uint256[]));
         uint256[] memory tokenIds;
         for (uint256 i=0; i <= qrngUintArray.length; i++) {
-            uint256 generatedToken =  _generateId(qrngUintArray[i]);
+            uint256 generatedToken =  _generateId(qrngUintArray[i], false);
             tokenIds[i]= generatedToken;
             _safeMint(requestToSender[requestId][i], generatedToken);
             _setTokenURI(generatedToken, generatedToken.toString());
         }
         emit GeneratedBatchToken(requestToSender[requestId], tokenIds);
+    }
+
+    /**
+     * @notice Mint directly one shinny token.
+     * @dev This is up to the dev to make use of. Can be good for drops 
+     * scenarios in which you need to manually mint them.
+     */
+    function mintShinny(
+        address targetAddress
+    ) external onlyOwner {
+        uint256 tokenId = _generateId(0, true);
+        _safeMint(targetAddress, tokenId);
+        _setTokenURI(tokenId, tokenId.toString());
+        emit GenerateShinny(targetAddress, tokenId);
     }
 
     /**
@@ -283,12 +300,13 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
      * @param randomUint The result uint from the airnode call.
      */
     function _generateId(
-        uint256 randomUint
+        uint256 randomUint,
+        bool shinnyMint
     )   internal returns (uint256) {
-        uint256 id = _pickRandomUniqueId(randomUint);
+        uint256 id = _pickRandomUniqueId(randomUint, shinnyMint);
         uint256 _tokenId;
         if (id == 0 && 
-            shinnyAvailable && 
+            (shinnyAvailable || shinnyMint) && 
             shinnyCount < expectedShinny
         ) {
             shinnyCount += 1;
