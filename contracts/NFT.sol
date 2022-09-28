@@ -47,10 +47,11 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     event RequestedToken(address requesterAddress, bytes32 idOfRequest);
     event RequestedBatchToken(address[] requesterAddresses, bytes32 idOfRequest);
     event GeneratedToken(address requesterAddress, uint256 generatedTokenId);
+    event GeneratedBatchToken(address[] requesterAddresses, uint256[] generatedTokenIds);
 
     constructor(address _airnodeRrp, uint256 totalShinnies)
         RrpRequesterV0(_airnodeRrp)
-        ERC721("LAPI3", "LAPI3")
+        ERC721("Quantum Choice", "QTC")
     {
         shinnyCount = 0;
         expectedShinny = totalShinnies;
@@ -251,7 +252,9 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     }
 
     /**
-     * @notice
+     * @notice Callback Function for airnode Batch Request.
+     * @param requestId Request ID.
+     * @param data ABI-encoded response. The Random Number from the API.
      */
     function mintBatch(
         bytes32 requestId,
@@ -265,9 +268,12 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         uint256[] memory qrngUintArray = abi.decode(data, (uint256[]));
         uint256[] memory tokenIds;
         for (uint256 i=0; i <= qrngUintArray.length; i++) {
-            tokenIds[i] = _generateId(qrngUintArray[i]);
-            
+            uint256 generatedToken =  _generateId(qrngUintArray[i]);
+            tokenIds[i]= generatedToken;
+            _safeMint(requestToSender[requestId][i], generatedToken);
+            _setTokenURI(generatedToken, generatedToken.toString());
         }
+        emit GeneratedBatchToken(requestToSender[requestId], tokenIds);
     }
 
     /**
