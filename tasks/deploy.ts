@@ -33,7 +33,7 @@ task("deploy", "Deploys all the contracts")
     });
 
 subtask("nftDeploy", "Deploys NFT contract")
-    .addParam("airnode", "Airnode RRP Address for the specified network", types.string)
+    .addParam("airnode", "Airnode RRP Address for the specified network")
     .setAction(async(taskArgs, hre) => {
         const totalSpecials = 100;
         const airnodeAddress = taskArgs.airnode;
@@ -70,7 +70,7 @@ subtask("nftDeploy", "Deploys NFT contract")
     });
 
 subtask("raffleDeploy", "Deploys the Raffle contract")
-    .addParam("airnode", "Airnode RRP Address for the specified network", types.string)
+    .addParam("airnode", "Airnode RRP Address for the specified network")
     .setAction(async(taskArgs, hre) => {
         const airnodeAddress = taskArgs.airnode;
         const raffleFile = `addresses/raffle${hre.network.name}.json`;

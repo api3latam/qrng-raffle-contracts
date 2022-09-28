@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "Contracts for Raffle Dapp from API3 Latam",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deployNftGoerli": "npx hardhat deploy --nft true --raffle false --network goerli",
+    "deployRaffleGoerli": "npx hardhat deploy --nft false --rafle true --network goerli",
+    "deployAllGoerli": "npx hardhat deploy --nft true --rafle true --network goerli",
+    "fundNftGoerli": "npx hardhat fund --nft true --raffle false --network goerli",
+    "fundRaffleGoerli": "npx hardhat fund --nft false --rafle true --network goerli",
+    "fundAllGoerli": "npx hardhat fund --nft true --raffle true --network goerli"
   },
   "keywords": [
     "EVM",
