@@ -17,8 +17,19 @@ export function getPrivateKey() {
     }
 };
 
-export function providerURL(network: string) {
-    return process.env[`${network.toUpperCase()}_URL`] || "";
+/*
+ * @notice Returns the provider url from `.env` file.
+ * @param mode? Use 1 for HTTP and 2 for WebSockets
+*/
+export function providerURL(
+    network: string, 
+    mode?: number
+) {
+    if (mode === 1 || mode === undefined) {
+        return process.env[`${network.toUpperCase()}_URL`] || "";
+    } else {
+        return process.env[`${network.toUpperCase()}WS_URL`] || "";
+    }
 }
 
 export function loadJsonFile(file: string) {
