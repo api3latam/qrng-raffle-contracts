@@ -148,6 +148,6 @@ subtask("pickerDeploy", "Deploys the Picker contract")
         console.log('Saving addresses to file...\n')
         writeJsonFile({
             path: `/${file}`,
-            data: { raffle : contract.address }
+            data: { picker : contract.address }
         });
     });

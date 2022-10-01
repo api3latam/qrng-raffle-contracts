@@ -151,7 +151,6 @@ subtask("pickerSetup", "Config for Picker contract")
         await contract.setRequestParameters(
             qrngData['airnode'],
             qrngData['endpointIdUint256'],
-            qrngData['endpointIdUint256Array'],
             sponsor
         );
         console.log('Done Setting up!');
