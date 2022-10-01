@@ -4,6 +4,7 @@ pragma solidity ^0.8.15;
 
 import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequesterV0.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
 * @notice This is a basic contract to get a QRNG number
@@ -11,11 +12,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Picker is RrpRequesterV0, Ownable {
 
+    using Counters for Counters.Counter;
+
+    Counters.Counter private index;
     address public airnode;
     bytes32 public endpointIdUint256;
     address private sponsorWallet;
 
+    // Maps airnode id requests to execution status
     mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
+    // Maps results QRNG results to incremental index
+    mapping(uint256 => uint256) public indexToQrng;
 
     event SetRequestParameters(
         address airnodeAddress, 
@@ -83,6 +90,8 @@ contract Picker is RrpRequesterV0, Ownable {
         );
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngNumber = abi.decode(data, (uint256));
+        indexToQrng[index.current()] = qrngNumber;
+        index.increment();
         emit ReceivedUint256(requestId, qrngNumber);
     }
 
