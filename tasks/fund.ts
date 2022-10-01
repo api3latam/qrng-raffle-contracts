@@ -17,6 +17,12 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
         true, 
         types.boolean
     )
+    .addOptionalParam(
+        "picker", 
+        "Indicates wether to fund Picker contract or not", 
+        true, 
+        types.boolean
+    )
     .setAction(async(taskArgs, hre) => {
         try {
             const defaultAmount = JSON.stringify({ value: 0.1, unit: 'ETH' });
@@ -26,6 +32,9 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
             }
             if (taskArgs.raffle) {
                 await hre.run("raffleFund", { amountData: defaultAmount, qrngData: qrng });
+            }
+            if (taskArgs.picker) {
+                await hre.run("pickerFund", { amountData: defaultAmount, qrngData: qrng });
             }
         } catch(err) {
             console.error(err);
@@ -87,6 +96,37 @@ subtask("raffleFund", "Funds the Raffle Sponsor Wallet")
           );
         await signer.sendTransaction({
             to: raffleSponsor,
+            value: hre.ethers.utils.parseEther(amount['value'].toString()),
+          });
+
+        console.log('Sponsor wallet funded');
+    });
+
+subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
+    .addParam("amountData", "Amount to transfer as sponsor funds")
+    .addParam("qrngData", "The information pertaining the QRNG airnode")
+    .setAction(async (taskArgs, hre) => {
+        const amount = JSON.parse(taskArgs.amountData)
+        const provider = new hre.ethers.providers.JsonRpcProvider(
+            providerURL(hre.network.name)
+        );
+        const signer = new hre.ethers.Wallet(getPrivateKey(), provider);
+        const qrngData = JSON.parse(taskArgs.qrngData);
+
+        const address = loadJsonFile(`addresses/picker${hre.network.name}.json`)['picker'];
+
+        const sponsor = await deriveSponsorWalletAddress(
+            qrngData['xpub'],
+            qrngData['airnode'],
+            address
+        );
+
+        console.log(
+            `Funding Picker sponsor wallet at ${sponsor} with: \
+                ${amount['value']} ${amount['unit']}\n`
+          );
+        await signer.sendTransaction({
+            to: sponsor,
             value: hre.ethers.utils.parseEther(amount['value'].toString()),
           });
 
