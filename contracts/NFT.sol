@@ -231,7 +231,7 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
 
     /**
      * @notice Callback Function for the Airnode, which recieves the Random Id and mints the NFT.
-     * @dev Note the `onlyAirnodeRrp` modifier. You should only accept RRP
+     * @dev Notice the `onlyAirnodeRrp` modifier. You should only accept RRP
      * fulfillments from this protocol contract. Also note that only
      * fulfillments for the requests made by this contract are accepted, and
      * a request cannot be responded to multiple times.
