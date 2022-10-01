@@ -21,6 +21,8 @@ contract Picker is RrpRequesterV0, Ownable {
 
     // Maps airnode id requests to execution status
     mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
+    // Maps cap number to request id to format index based QRNG
+    mapping(bytes32 => uint256) private requestToCap;
     // Maps results QRNG results to incremental index
     mapping(uint256 => uint256) public indexToQrng;
 
@@ -60,7 +62,9 @@ contract Picker is RrpRequesterV0, Ownable {
      * @dev This request will be fulfilled by the contract's sponsor wallet,
      * which means spamming it may drain the sponsor wallet.
      */
-    function requestNumber() public onlyOwner returns (bytes32) {
+    function requestNumber(
+        uint256 capNumber
+    ) public onlyOwner returns (bytes32) {
         bytes32 requestId = airnodeRrp.makeFullRequest(
             airnode,
             endpointIdUint256,
@@ -71,6 +75,7 @@ contract Picker is RrpRequesterV0, Ownable {
             ""
         );
         expectingRequestWithIdToBeFulfilled[requestId] = true;
+        requestToCap[requestId] = capNumber;
         emit RequestedUint(requestId);
         return requestId;
     }
@@ -90,7 +95,8 @@ contract Picker is RrpRequesterV0, Ownable {
         );
         expectingRequestWithIdToBeFulfilled[requestId] = false;
         uint256 qrngNumber = abi.decode(data, (uint256));
-        indexToQrng[index.current()] = qrngNumber;
+        uint256 limit = requestToCap[requestId];
+        indexToQrng[index.current()] = qrngNumber % limit;
         index.increment();
         emit ReceivedUint256(requestId, qrngNumber);
     }
