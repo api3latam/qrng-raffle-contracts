@@ -38,34 +38,29 @@ describe("NFT", async () => {
             .to.equal(qrngData['endpointIdUint256']);
     });
 
-    it("Should mint the tokens", async (done) => {
+    it("Should mint the tokens", async () => {
         try {
             const { nftContract, deployer } = await tokenSetup();
-
-            const prevBalance = await nftContract.balanceOf(deployer.address);
 
             await expect(await nftContract.requestToken(deployer.address))
                 .to.emit(nftContract, "RequestedToken")
                 .withArgs(deployer.address, anyValue);
-
-            const listener = async () => {
-                new Promise((resolve, reject) => {
-                    nftContract.once("GeneratedToken", async (requesterAddress, tokenId) => {
-                        expect(requesterAddress).to.equal(deployer.address);
-                        console.log(`Token ID is: ${tokenId}`)
-
-                        expect(await nftContract.ownerOf(tokenId as number))
-                            .to.equal(deployer.address);
-                        expect(await nftContract.balanceOf(deployer.address))
-                            .to.equal(prevBalance.add(1));
-                    });
-                    resolve(true);
-                });
-            await listener();
-            done();
-            };
         } catch (err) {
-            done(err);
+            console.error(err);
         };
     });
+
+    it("Should mint a shinny", async() => {
+        try {
+            const { nftContract, deployer } = await tokenSetup();
+
+            const shinnyCount = await nftContract.shinnyCount();
+
+            await expect(await nftContract.mintShinny(deployer.address))
+                .to.emit(nftContract, "GenerateShinny")
+                .withArgs(deployer.address, shinnyCount.add(1));
+        } catch (err) {
+            console.error(err);
+        }
+    })
 })
