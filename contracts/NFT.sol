@@ -86,6 +86,14 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
             }
             emit SwitchShinny(shinnyAvailable);
     }
+
+    /**
+     * @notice Private function to get current shinny availability
+     */
+    function _getShinnyAvailability()
+        external view onlyOwner returns (bool) {
+            return shinnyAvailable;
+    }
     
     /**
      * @notice Sets the string for BaseURI where metadata will be located at

@@ -38,6 +38,17 @@ describe("NFT", async () => {
             .to.equal(qrngData['endpointIdUint256']);
     });
 
+    it("Should change shinny parameter", async () => {
+        try {
+            const { nftContract } = await tokenSetup();
+
+            await expect(await nftContract.shinnyAvailability())
+                .to.emit(nftContract, "SwitchShinny")
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
     it("Should mint the tokens", async () => {
         try {
             const { nftContract, deployer } = await tokenSetup();
@@ -62,5 +73,6 @@ describe("NFT", async () => {
         } catch (err) {
             console.error(err);
         }
-    })
+    });
+
 })
