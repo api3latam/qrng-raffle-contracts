@@ -50,7 +50,7 @@ const main = async () => {
         const filterPicker = contract.filters.RequestedUint();
 
         console.log('Requesting number!');
-        await contract.requestNumber();
+        await contract.requestNumber(250);
 
         contract.on(filterPicker, 
             (requestedId) => {
