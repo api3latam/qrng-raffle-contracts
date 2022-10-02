@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "description": "Contracts for Raffle Dapp from API3 Latam",
   "scripts": {
-    "deployNftGoerli": "npx hardhat deploy --nft true --raffle false --network goerli",
-    "deployRaffleGoerli": "npx hardhat deploy --nft false --rafle true --network goerli",
-    "deployAllGoerli": "npx hardhat deploy --nft true --rafle true --network goerli",
-    "fundNftGoerli": "npx hardhat fund --nft true --raffle false --network goerli",
-    "fundRaffleGoerli": "npx hardhat fund --nft false --rafle true --network goerli",
-    "fundAllGoerli": "npx hardhat fund --nft true --raffle true --network goerli"
+    "deployNftGoerli": "npx hardhat deploy --nft true --raffle false --picker false --network goerli",
+    "deployRaffleGoerli": "npx hardhat deploy --nft false --raffle true --picker false --network goerli",
+    "deployPickerGoerli": "npx hardhat deploy --nft false --raffle false --picker true --network goerli",
+    "deployAllGoerli": "npx hardhat deploy --nft true --raffle true --picker true --network goerli",
+    "fundNftGoerli": "npx hardhat fund --nft true --raffle false --picker false --network goerli",
+    "fundRaffleGoerli": "npx hardhat fund --nft false --raffle true --picker false --network goerli",
+    "fundPickerGoerli": "npx hardhat fund --nft false --raffle false --picker true --network goerli",
+    "fundAllGoerli": "npx hardhat fund --nft true --raffle true --picker true --network goerli",
+    "setupNftGoerli": "npx hardhat setup --nft true --raffle false --picker false --network goerli",
+    "setupRaffleGoerli": "npx hardhat setup --nft false --raffle true --picker false --network goerli",
+    "setupPickerGoerli": "npx hardhat setup --nft false --raffle false --picker true --network goerli",
+    "setupAllGoerli": "npx hardhat setup --nft true --raffle true --picker true --network goerli"
   },
   "keywords": [
     "EVM",
