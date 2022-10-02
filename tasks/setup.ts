@@ -75,7 +75,6 @@ subtask("nftSetup", "Config for NFT contract")
         await nftContract.setRequestParameters(
             qrngData['airnode'],
             qrngData['endpointIdUint256'],
-            qrngData['endpointIdUint256Array'],
             nftSponsor
         );
         console.log('Done Setting up!');
