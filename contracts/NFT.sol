@@ -29,6 +29,8 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
 
     // Mapping a custom URI to a tokenId. In cases when not using root folder from baseURI
     mapping(uint256 => string) private _tokenURIs;
+    // Maping of tokenIds with address owner.
+    mapping(uint256 => address) public tokenToOwner;
     // Mapping that maps the requestId for a random number to the fullfillment status of that request
     mapping(bytes32 => bool) public expectingRequestWithIdToBeFulfilled;
     // Mapping that tracks the requestId to the address that made the request
@@ -171,14 +173,12 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
         uint256 random,
         bool isShinny
     ) internal view returns (uint256) {
-        uint256 randomNumber;
+        uint256 outcome;
         if (!isShinny) {
-            uint256 prevNumber = uint256(
-                keccak256(abi.encodePacked(msg.sender, random)) // Probability of 1/255 as per Wallet address times 0 - 255 from API 
-                );
-            randomNumber = prevNumber % 255; // Probability of ~ 2/255. 
+            uint256 capped = random % 255;
+            outcome = random % 255; // Probability of ~ 2/255. 
         } else if (isShinny) {
-            randomNumber = 0;
+            outcome = 0;
         }
         return randomNumber; // Final probability of 0.031% per mint
     }

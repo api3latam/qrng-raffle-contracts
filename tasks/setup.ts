@@ -43,7 +43,7 @@ task("setup", "Config parameters for deployed contract")
 subtask("nftSetup", "Config for NFT contract")
     .addParam("qrngData", "The information pertaining the QRNG airnode")
     .setAction(async (taskArgs, hre) => {
-        const baseURI = "https://api.coolcatsnft.com/cat/";
+        const baseURI = "https://ipfs.io/ipfs/QmSYW7VqabVYBHi6pY4U9WPTzKMksBekbWRQhdtjWaVH8S/";
         const nftAddress = loadJsonFile(`addresses/nft${hre.network.name}.json`)['nft'];
         const nftArtifact = await hre.artifacts.readArtifact("NFT");
         const qrngData = JSON.parse(taskArgs.qrngData);

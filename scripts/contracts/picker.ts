@@ -1,7 +1,6 @@
 import { Wallet, 
     Contract,
-    providers,
-    utils } from "ethers";
+    providers } from "ethers";
 import { AirnodeRrpAddresses } from '@api3/airnode-protocol';
 import { getPrivateKey,
     providerURL,
@@ -48,9 +47,10 @@ const main = async () => {
         ) as IAirnodeRrpV0;
 
         const filterPicker = contract.filters.RequestedUint();
+        const abiDecoder = require('abi-decoder');
 
         console.log('Requesting number!');
-        await contract.requestNumber(250);
+        await contract.requestNumber(255);
 
         contract.on(filterPicker, 
             (requestedId) => {
@@ -66,8 +66,8 @@ const main = async () => {
                     data) => {
                         console.log(`The returned value from QRNG Airnode ${requesterAirnode}\n
                         is: ${data}`);
-                        const arrayifiedData = utils.arrayify(data);
-                        console.log(`The number is: ${new TextDecoder().decode(arrayifiedData)}`)
+                        const decodedData = abiDecoder.decodeLogs(data);
+                        console.log(`The number is: ${decodedData}`);
                 });
         });
 
