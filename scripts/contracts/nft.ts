@@ -21,8 +21,8 @@ const main = async () => {
             `addresses/nft${network}.json`
         )['nft'];
 
-        const provider = new providers.WebSocketProvider(
-            providerURL(network, 2));
+        const provider = new providers.JsonRpcProvider(
+            providerURL(network, 1));
         const signer = new Wallet(
             getPrivateKey(),
             provider
@@ -34,20 +34,11 @@ const main = async () => {
             signer
         ) as NFT;
 
-        const addressArray = [signer.address, 
-            "0xd29BC939ACF8269938557A27949b228EEf478479",
-            "0x849B6aA8DdB57c0BF7F16d3e8a189dbA96c99b46",
-            signer.address,
-            "0xd29BC939ACF8269938557A27949b228EEf478479",
-            "0x849B6aA8DdB57c0BF7F16d3e8a189dbA96c99b46",
-            signer.address, 
-            "0xd29BC939ACF8269938557A27949b228EEf478479",
-            "0x849B6aA8DdB57c0BF7F16d3e8a189dbA96c99b46"
-        ]
+        const addressArray = [signer.address]
 
         for (let i=0; i < addressArray.length; i++) {
-            console.log(`Minting for ${addressArray[i]}\n`);
-            let tx = await contract.requestToken(addressArray[i]);
+            console.log(`Minting shiny for ${addressArray[i]}\n`);
+            let tx = await contract.mintShinny(addressArray[i]);
             await tx.wait();
         };
 
