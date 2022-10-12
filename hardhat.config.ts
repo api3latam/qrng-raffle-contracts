@@ -28,6 +28,16 @@ const config: HardhatUserConfig = {
             url: `${process.env.GOERLI_URL}`,
             chainId: 5,
             accounts: [process.env.WALLET_PK || ""]
+        },
+        arbitrum: {
+            url: `${process.env.ARBITRUM_URL}`,
+            chainId: 42161,
+            accounts: [process.env.WALLET_PK || ""] 
+        },
+        optimism: {
+            url: `${process.env.OPTIMISM_URL}`,
+            chainId: 10,
+            accounts: [process.env.WALLET_PK || ""]
         }
     },
     paths: {
