@@ -70,7 +70,9 @@ subtask("nftSetup", "Config for NFT contract")
 
         console.log('Setting up NFT Contract\n');
         console.log('Setting up Base URI\n');
-        await nftContract.setBaseURI(baseURI);
+        await nftContract.setBaseURI(
+            baseURI
+        );
         console.log('Setting up Airnode Parameters\n');
         await nftContract.setRequestParameters(
             qrngData['airnode'],

@@ -60,14 +60,13 @@ subtask("nftDeploy", "Deploys NFT contract")
         
         const factory = await hre.ethers.getContractFactory(
             artifact.abi,
-            artifact.bytecode, 
+            artifact.bytecode,
             signer
         );
 
         const contract = await factory.deploy(
             airnodeAddress,
-            totalSpecials,
-        ) as NFT;
+            totalSpecials) as NFT;
 
         console.log(`NFT contract deployed with address: ${contract.address}\n`);
 

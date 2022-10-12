@@ -172,15 +172,14 @@ contract NFT is ERC721, RrpRequesterV0, Ownable {
     function _pickRandomUniqueId(
         uint256 random,
         bool isShinny
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 outcome;
         if (!isShinny) {
-            uint256 capped = random % 255;
-            outcome = random % 255; // Probability of ~ 2/255. 
+            outcome = (random % 255) % 255; // Probability of ~ 2/255. 
         } else if (isShinny) {
             outcome = 0;
         }
-        return randomNumber; // Final probability of 0.031% per mint
+        return outcome; // Final probability of 0.031% per mint
     }
    
     /**

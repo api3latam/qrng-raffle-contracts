@@ -1,5 +1,5 @@
 import { subtask, task, types } from "hardhat/config";
-import { deriveSponsorWalletAddress } from "@api3/airnode-admin";
+import { deriveSponsorWalletAddress, generateMnemonic } from "@api3/airnode-admin";
 import { getPrivateKey,
     loadJsonFile,
     providerURL } from "../scripts/utils";
@@ -82,8 +82,8 @@ subtask("nftFund", "Funds the NFT Sponsor Wallet")
           );
         await signer.sendTransaction({
             to: nftSponsor,
-            value: hre.ethers.utils.parseEther(value.toString()),
-          });
+            value: hre.ethers.utils.parseEther(value.toString())
+        });
           console.log('Sponsor wallet funded');
     });
 
