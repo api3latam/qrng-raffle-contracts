@@ -25,7 +25,20 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
     )
     .setAction(async(taskArgs, hre) => {
         try {
-            const defaultAmount = JSON.stringify({ value: 0.1, unit: 'ETH' });
+            const defaultAmount = JSON.stringify({ 
+                arbitrum: {
+                    value: 0.008, unit: 'ETH' 
+                },
+                optimism: {
+                    value: 0.012, unit: 'ETH'
+                },
+                polygon: {
+                    value: 10, unit: "MATIC"
+                },
+                goerli: {
+                    value: 0.1, unit: "ETH"
+                }
+            });
             const qrng = JSON.stringify(loadJsonFile('qrng.json'));
             if (taskArgs.nft) {
                 await hre.run("nftFund", { amountData: defaultAmount, qrngData: qrng });
@@ -60,13 +73,16 @@ subtask("nftFund", "Funds the NFT Sponsor Wallet")
             nftAddress
         );
 
+        const value = amount[hre.network.name]['value'];
+        const unit = amount[hre.network.name]['unit'];
+
         console.log(
             `Funding NFT sponsor wallet at ${nftSponsor} with: \
-                ${amount['value']} ${amount['unit']}\n`
+                ${value} ${unit}\n`
           );
         await signer.sendTransaction({
             to: nftSponsor,
-            value: hre.ethers.utils.parseEther(amount['value'].toString()),
+            value: hre.ethers.utils.parseEther(value.toString()),
           });
           console.log('Sponsor wallet funded');
     });
@@ -90,13 +106,16 @@ subtask("raffleFund", "Funds the Raffle Sponsor Wallet")
             raffleAddress
         );
 
+        const value = amount[hre.network.name]['value'];
+        const unit = amount[hre.network.name]['unit'];
+
         console.log(
             `Funding Raffle sponsor wallet at ${raffleSponsor} with: \
-                ${amount['value']} ${amount['unit']}\n`
+                ${value} ${unit}\n`
           );
         await signer.sendTransaction({
             to: raffleSponsor,
-            value: hre.ethers.utils.parseEther(amount['value'].toString()),
+            value: hre.ethers.utils.parseEther(value.toString()),
           });
 
         console.log('Sponsor wallet funded');
@@ -121,13 +140,16 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
             address
         );
 
+        const value = amount[hre.network.name]['value'];
+        const unit = amount[hre.network.name]['unit'];
+
         console.log(
             `Funding Picker sponsor wallet at ${sponsor} with: \
-                ${amount['value']} ${amount['unit']}\n`
+                ${value} ${unit}\n`
           );
         await signer.sendTransaction({
             to: sponsor,
-            value: hre.ethers.utils.parseEther(amount['value'].toString()),
+            value: hre.ethers.utils.parseEther(value.toString()),
           });
 
         console.log('Sponsor wallet funded');

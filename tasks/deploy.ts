@@ -66,7 +66,7 @@ subtask("nftDeploy", "Deploys NFT contract")
 
         const contract = await factory.deploy(
             airnodeAddress,
-            totalSpecials
+            totalSpecials,
         ) as NFT;
 
         console.log(`NFT contract deployed with address: ${contract.address}\n`);
