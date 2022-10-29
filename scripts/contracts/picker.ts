@@ -4,8 +4,8 @@ import { Wallet,
 import { AirnodeRrpAddresses } from '@api3/airnode-protocol';
 import { getPrivateKey,
     providerURL,
-    loadJsonFile } from "../utils";
-import networksData from "../networks";
+    loadJsonFile,
+    networksData } from "../utils";
 import type { Picker, IAirnodeRrpV0 } from "../../typechain";
 
 const main = async () => {

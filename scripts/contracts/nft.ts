@@ -3,7 +3,7 @@ import { Wallet,
         providers } from "ethers";
 import { getPrivateKey,
     providerURL,
-    loadJsonFile } from "../utils";
+    loadJsonFile } from "../utils/misc";
 import type { NFT } from "../../typechain";
 import { exit } from "process";
 
