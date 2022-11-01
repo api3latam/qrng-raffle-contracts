@@ -45,12 +45,12 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
     event GeneratedToken(address requesterAddress, uint256 generatedTokenId);
     event GenerateShinny(address winnerAddress, uint256 generatedTokenId);
 
-    constructor(address _airnodeRrp, uint256 totalShinnies)
+    constructor(address _airnodeRrp)
         RrpRequesterV0(_airnodeRrp)
-        ERC721("Quantum Choice", "QTC")
+        ERC721("Quantum Ghostly Raffle", "QGR")
     {
         shinnyCount = 0;
-        expectedShinny = totalShinnies;
+        expectedShinny = 20;
     }
     
     /** @notice Sets parameters used in requesting QRNG services.
