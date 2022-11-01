@@ -24,7 +24,8 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
     string private _baseURIextended;        // The Extended baseUrl for ERC721
     address public airnode;                 // The address of the QRNG airnode
     bytes32 public endpointIdUint256;       // The endpointId of the airnode to fetch a single random number
-    address private sponsorWallet;           // The address of the sponsorWallet that will be making the fullfillment transaction
+    address private sponsorAddress;         // The address of the sponsor from which the sponsorwallet is derived 
+    address private sponsorWallet;          // The address of the sponsorWallet that will be making the fullfillment transaction
 
     // Mapping a custom URI to a tokenId. In cases when not using root folder from baseURI
     mapping(uint256 => string) private _tokenURIs;
@@ -39,7 +40,8 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
     event SetRequestParameters(
         address airnodeAddress, 
         bytes32 targetEndpoint,
-        address sponsorAddress
+        address sponsorAddress,
+        address sponsorWallet
     );
     event RequestedToken(address requesterAddress, bytes32 idOfRequest);
     event GeneratedToken(address requesterAddress, uint256 generatedTokenId);
@@ -62,14 +64,17 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
     function setRequestParameters(
         address _airnode,
         bytes32 _endpointIdUint256,
+        address _sponsorAddress,
         address _sponsorWallet
     ) external onlyOwner {
         airnode = _airnode;
         endpointIdUint256 = _endpointIdUint256;
         sponsorWallet = _sponsorWallet;
+        sponsorAddress = _sponsorAddress;
         emit SetRequestParameters(
             airnode,
             endpointIdUint256, 
+            sponsorAddress,
             sponsorWallet
         );
     }
@@ -172,7 +177,7 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
         bytes32 requestId = airnodeRrp.makeFullRequest(
             airnode,
             endpointIdUint256,
-            address(this),
+            sponsorAddress,
             sponsorWallet,
             address(this),
             this.mint.selector,
@@ -193,7 +198,7 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
      * @param requestId Request ID.
      * @param data ABI-encoded response. The Random Number from the API.
      */
-    function mint(
+    function mint (
         bytes32 requestId, 
         bytes calldata data
     ) external onlyAirnodeRrp {
@@ -240,7 +245,6 @@ contract Spooky is ERC721, RrpRequesterV0, Ownable {
         ) {
             shinnyCount += 1;
             _tokenId = shinnyCount;
-            shinnyAvailable = false;
         } else {
             index.increment();
             _tokenId = index.current() + expectedShinny;
