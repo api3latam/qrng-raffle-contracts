@@ -1,9 +1,7 @@
 import { subtask, task, types } from "hardhat/config";
 import { AirnodeRrpAddresses } from '@api3/airnode-protocol';
-import { getPrivateKey, 
-    writeJsonFile,
-    providerURL } from "../scripts/utils";
-import type { NFT, Raffle } from "../typechain";
+import { writeJsonFile, getFactory } from "../scripts/utils";
+import type { NFT, Raffle, Spooky } from "../typechain";
 
 task("deploy", "Deploys all the contracts")
     .addOptionalParam(
@@ -24,6 +22,12 @@ task("deploy", "Deploys all the contracts")
         true, 
         types.boolean
     )
+    .addOptionalParam(
+        "spooky",
+        "Indicates wether to deploy Spooky contract or no",
+        true,
+        types.boolean
+    )
     .setAction(async(taskArgs, hre) => {
         try {
             const airnodeAddress = AirnodeRrpAddresses[hre.network.config.chainId as number];
@@ -36,6 +40,9 @@ task("deploy", "Deploys all the contracts")
             if (taskArgs.picker) {
                 await hre.run("pickerDeploy", { airnode: airnodeAddress });
             }
+            if (taskArgs.spooky) {
+                await hre.run('spookyDeploy', { airnode: airnodeAddress });
+            }
         } catch (err) {
             console.error(err);
         }
@@ -47,22 +54,8 @@ subtask("nftDeploy", "Deploys NFT contract")
         const totalSpecials = 100;
         const airnodeAddress = taskArgs.airnode;
         const file = `addresses/nft${hre.network.name}.json`;
-        const artifact = await hre.artifacts.readArtifact("NFT");
-
-        const provider = new hre.ethers.providers.JsonRpcProvider(
-            providerURL(hre.network.name)
-        );
-        const privateKey = getPrivateKey();
-        const signer = new hre.ethers.Wallet(
-            privateKey,
-            provider
-            );        
         
-        const factory = await hre.ethers.getContractFactory(
-            artifact.abi,
-            artifact.bytecode,
-            signer
-        );
+        const factory = await getFactory(hre, "NFT");
 
         const contract = await factory.deploy(
             airnodeAddress,
@@ -82,24 +75,8 @@ subtask("raffleDeploy", "Deploys the Raffle contract")
     .setAction(async(taskArgs, hre) => {
         const airnodeAddress = taskArgs.airnode;
         const file = `addresses/raffle${hre.network.name}.json`;
-        const artifact = await hre.artifacts.readArtifact("Raffle");
-
-        const provider = new hre.ethers.providers.JsonRpcProvider(
-            providerURL(hre.network.name)
-        );
-        const privateKey = getPrivateKey();
-        const signer = new hre.ethers.Wallet(
-            privateKey,
-            provider
-            );
-
         
-        const factory = await hre.ethers.getContractFactory(
-            artifact.abi,
-            artifact.bytecode,
-            signer
-        );
-
+        const factory = await getFactory(hre, "Raffle")
         
         const contract = await factory.deploy(
             airnodeAddress
@@ -119,26 +96,10 @@ subtask("pickerDeploy", "Deploys the Picker contract")
     .setAction(async(taskArgs, hre) => {
         const airnodeAddress = taskArgs.airnode;
         const file = `addresses/picker${hre.network.name}.json`;
-        const artifact = await hre.artifacts.readArtifact("Picker");
-
-        const provider = new hre.ethers.providers.JsonRpcProvider(
-            providerURL(hre.network.name)
-        );
-        const privateKey = getPrivateKey();
-        const signer = new hre.ethers.Wallet(
-            privateKey,
-            provider
-            );
-
         
-        const raffleFactory = await hre.ethers.getContractFactory(
-            artifact.abi,
-            artifact.bytecode,
-            signer
-        );
-
+        const factory = await getFactory(hre, "Picker")
         
-        const contract = await raffleFactory.deploy(
+        const contract = await factory.deploy(
             airnodeAddress
         ) as Raffle;
 
@@ -148,5 +109,26 @@ subtask("pickerDeploy", "Deploys the Picker contract")
         writeJsonFile({
             path: `/${file}`,
             data: { picker : contract.address }
+        });
+    });
+
+subtask("spookyDeploy", "Deploys Spooky contract")
+    .addParam("airnode", "Airnode RRP Address for the specified network")
+    .setAction(async(taskArgs, hre) => {
+        const airnodeAddress = taskArgs.airnode;
+        const file = `addresses/spooky${hre.network.name}.json`;
+        
+        const factory = await getFactory(hre, "Spooky")
+        
+        const contract = await factory.deploy(
+            airnodeAddress
+        ) as Spooky;
+
+        console.log(`Spooky contract deployed with address: ${contract.address}\n`);
+        
+        console.log('Saving addresses to file...\n')
+        writeJsonFile({
+            path: `/${file}`,
+            data: { spooky : contract.address }
         });
     });
