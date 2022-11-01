@@ -7,25 +7,25 @@ task("deploy", "Deploys all the contracts")
     .addOptionalParam(
         "nft", 
         "Indicates wether to deploy NFT contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "raffle", 
         "Indicates wether to deploy Raffle contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "picker", 
         "Indicates wether to deploy Picker contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "spooky",
         "Indicates wether to deploy Spooky contract or no",
-        true,
+        false,
         types.boolean
     )
     .setAction(async(taskArgs, hre) => {

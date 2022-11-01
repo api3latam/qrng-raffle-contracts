@@ -2,7 +2,7 @@ import { task, subtask, types } from "hardhat/config";
 import { deriveSponsorWalletAddress } from '@api3/airnode-admin';
 import { getPrivateKey,
     loadJsonFile,
-    providerURL } from "../scripts/utils";
+    providerURL } from "../scripts/utils/misc";
 
 task("setup", "Config parameters for deployed contract")
     .addOptionalParam(
