@@ -1,25 +1,33 @@
 import { subtask, task, types } from "hardhat/config";
-import { deriveSponsorWalletAddress, generateMnemonic } from "@api3/airnode-admin";
+import { deriveSponsorWalletAddress, sponsorRequester } from "@api3/airnode-admin";
+import { AirnodeRrpAddresses, AirnodeRrpV0, AirnodeRrpV0Factory } from '@api3/airnode-protocol';
 import { getPrivateKey,
     loadJsonFile,
-    providerURL } from "../scripts/utils";
+    providerURL } from "../scripts/utils/misc";
+import type { RrpRequesterV0 } from "../typechain/@api3/airnode-protocol/contracts/rrp/requesters";
 
 task("fund", "Funds the sponsorAddress for the QRNG Airnode")
     .addOptionalParam(
         "nft", 
-        "Indicates wether to fund NFT contract or not", 
+        "Indicates wether to fund for NFT contract or not", 
         true, 
         types.boolean
     )
     .addOptionalParam(
         "raffle", 
-        "Indicates wether to fund Raffle contract or not", 
+        "Indicates wether to fund for Raffle contract or not", 
         true, 
         types.boolean
     )
     .addOptionalParam(
         "picker", 
-        "Indicates wether to fund Picker contract or not", 
+        "Indicates wether to fund for Picker contract or not", 
+        true, 
+        types.boolean
+    )
+    .addOptionalParam(
+        "spooky", 
+        "Indicates wether to fund for Spooky contract or not", 
         true, 
         types.boolean
     )
@@ -47,6 +55,9 @@ task("fund", "Funds the sponsorAddress for the QRNG Airnode")
                 await hre.run("raffleFund", { amountData: defaultAmount, qrngData: qrng });
             }
             if (taskArgs.picker) {
+                await hre.run("pickerFund", { amountData: defaultAmount, qrngData: qrng });
+            }
+            if (taskArgs.spooky) {
                 await hre.run("pickerFund", { amountData: defaultAmount, qrngData: qrng });
             }
         } catch(err) {
@@ -82,7 +93,9 @@ subtask("nftFund", "Funds the NFT Sponsor Wallet")
           );
         await signer.sendTransaction({
             to: nftSponsor,
-            value: hre.ethers.utils.parseEther(value.toString())
+            value: hre.ethers.utils.parseEther(value.toString()),
+            gasLimit: 5_000_000,
+            gasPrice: hre.ethers.utils.parseUnits("35", "gwei")
         });
           console.log('Sponsor wallet funded');
     });
@@ -132,12 +145,12 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
         const signer = new hre.ethers.Wallet(getPrivateKey(), provider);
         const qrngData = JSON.parse(taskArgs.qrngData);
 
-        const address = loadJsonFile(`addresses/picker${hre.network.name}.json`)['picker'];
+        const spookyAddress = loadJsonFile(`addresses/spooky${hre.network.name}.json`)['spooky'];
 
         const sponsor = await deriveSponsorWalletAddress(
             qrngData['xpub'],
             qrngData['airnode'],
-            address
+            signer.address
         );
 
         const value = amount[hre.network.name]['value'];
@@ -152,5 +165,16 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
             value: hre.ethers.utils.parseEther(value.toString()),
           });
 
-        console.log('Sponsor wallet funded');
+        console.log(`Sponsor wallet funded\
+        \nApproving requester for contract: ${spookyAddress}`);
+
+        const airnodeContract = AirnodeRrpV0Factory.getContract(
+            AirnodeRrpAddresses[hre.network.config.chainId as number],
+            AirnodeRrpV0Factory.abi
+        ) as AirnodeRrpV0;
+
+        const airnode = airnodeContract.connect(signer);
+
+        await sponsorRequester(airnode, spookyAddress);
+        console.log("Requester set!");
     });
