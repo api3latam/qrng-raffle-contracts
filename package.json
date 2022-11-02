@@ -45,6 +45,7 @@
     "@openzeppelin/contracts": "^4.7.3",
     "abi-decoder": "^2.4.0",
     "app-root-path": "^3.1.0",
+    "csv-parse": "^5.3.1",
     "dotenv": "^16.0.2"
   }
 }
