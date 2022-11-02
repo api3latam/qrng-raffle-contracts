@@ -3,24 +3,31 @@ import { deriveSponsorWalletAddress } from '@api3/airnode-admin';
 import { getPrivateKey,
     loadJsonFile,
     providerURL } from "../scripts/utils/misc";
+import { Spooky } from "../typechain";
 
 task("setup", "Config parameters for deployed contract")
     .addOptionalParam(
         "nft", 
         "Indicates wether to setup NFT contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "raffle", 
         "Indicates wether to setup Raffle contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "picker", 
         "Indicates wether to setup Picker contract or not", 
-        true, 
+        false, 
+        types.boolean
+    )
+    .addOptionalParam(
+        "spooky", 
+        "Indicates wether to setup Spooky contract or not", 
+        false, 
         types.boolean
     )
     .setAction(async(taskArgs, hre) => {
@@ -34,6 +41,9 @@ task("setup", "Config parameters for deployed contract")
             }
             if (taskArgs.picker) {
                 await hre.run("pickerSetup", { qrngData: qrng });
+            }
+            if (taskArgs.spooky) {
+                await hre.run("spookySetup", { qrngData: qrng });
             }
         } catch(err) {
             console.error(err);
@@ -156,3 +166,49 @@ subtask("pickerSetup", "Config for Picker contract")
         );
         console.log('Done Setting up!');
     });
+
+subtask("spookySetup", "Config for Spooky contract")
+    .addParam("qrngData", "The information pertaining the QRNG airnode")
+    .setAction(async (taskArgs, hre) => {
+        const address = loadJsonFile(`addresses/spooky${hre.network.name}.json`)['spooky'];
+        const artifact = await hre.artifacts.readArtifact("Spooky");
+        const qrngData = JSON.parse(taskArgs.qrngData);
+        const baseURI = "https://ipfs.io/ipfs/QmbtPBSckw21ST2EVmbYzkE1fL3ms8s7ZTj3piMFkc9peZ/";
+
+        const provider = new hre.ethers.providers.JsonRpcProvider(
+            providerURL(hre.network.name)
+        );
+        const privateKey = getPrivateKey();
+        const signer = new hre.ethers.Wallet(
+            privateKey,
+            provider
+        );
+
+        const contract = new hre.ethers.Contract(
+            address,
+            artifact.abi,
+            signer
+        ) as Spooky;
+
+        const sponsor = await deriveSponsorWalletAddress(
+            qrngData['xpub'],
+            qrngData['airnode'],
+            signer.address
+        );
+        
+        console.log('Setting up Spooky Contract\n');
+        console.log('Setting up Base URI\n');
+        await contract.setBaseURI(
+            baseURI
+        );
+        console.log('Setting up Airnode Parameters\n');
+        await contract.setRequestParameters(
+            qrngData['airnode'],
+            qrngData['endpointIdUint256'],
+            signer.address,
+            sponsor
+        );
+        console.log('Done Setting up!');
+
+    });
+    

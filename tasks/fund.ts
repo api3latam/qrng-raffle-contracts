@@ -4,31 +4,30 @@ import { AirnodeRrpAddresses, AirnodeRrpV0, AirnodeRrpV0Factory } from '@api3/ai
 import { getPrivateKey,
     loadJsonFile,
     providerURL } from "../scripts/utils/misc";
-import type { RrpRequesterV0 } from "../typechain/@api3/airnode-protocol/contracts/rrp/requesters";
 
 task("fund", "Funds the sponsorAddress for the QRNG Airnode")
     .addOptionalParam(
         "nft", 
         "Indicates wether to fund for NFT contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "raffle", 
         "Indicates wether to fund for Raffle contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "picker", 
         "Indicates wether to fund for Picker contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .addOptionalParam(
         "spooky", 
         "Indicates wether to fund for Spooky contract or not", 
-        true, 
+        false, 
         types.boolean
     )
     .setAction(async(taskArgs, hre) => {
@@ -175,6 +174,6 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
 
         const airnode = airnodeContract.connect(signer);
 
-        await sponsorRequester(airnode, spookyAddress);
-        console.log("Requester set!");
+        const sponsoringResult = await sponsorRequester(airnode, spookyAddress);
+        console.log(sponsoringResult);
     });
