@@ -174,6 +174,6 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
 
         const airnode = airnodeContract.connect(signer);
 
-        const sponsoringResult = await sponsorRequester(airnode, spookyAddress);
-        console.log(sponsoringResult);
+        await sponsorRequester(airnode, spookyAddress);
+        console.log("Done setting sponsor-requester for contract!");
     });
