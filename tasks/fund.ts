@@ -156,7 +156,7 @@ subtask("pickerFund", "Funds the Raffle Sponsor Wallet")
         const unit = amount[hre.network.name]['unit'];
 
         console.log(
-            `Funding Picker sponsor wallet at ${sponsor} with: \
+            `Funding Spooky sponsor wallet at ${sponsor} with: \
                 ${value} ${unit}\n`
           );
         await signer.sendTransaction({
